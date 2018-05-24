@@ -1,0 +1,17 @@
+{
+  "name": "@useful/postgresql",
+  "version": "0.1.0",
+  "description": "Package created with NPG (Node Package Generator)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "npg build -v 8.10",
+    "start": "npg start"
+  },
+  "devDependencies": {
+    "npg": "^0.2.0"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.0.0-beta.40",
+    "pg": "^7.4.3"
+  }
+}
