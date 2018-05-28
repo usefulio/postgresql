@@ -1,17 +1,16 @@
 {
   "name": "@useful/postgresql",
-  "version": "0.1.0",
-  "description": "Package created with NPG (Node Package Generator)",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "build": "npg build -v 8.10",
-    "start": "npg start"
-  },
-  "devDependencies": {
-    "npg": "^0.2.0"
+    "build": "tsc"
   },
   "dependencies": {
-    "@babel/runtime": "^7.0.0-beta.40",
-    "pg": "^7.4.3"
+    "@types/pg": "^7.4.9",
+    "pg": "^7.4.3",
+    "pg-native": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^2.8.3"
   }
 }

@@ -1,133 +1,105 @@
 "use strict";
-
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.transaction = exports.query = exports.disconnect = exports.connect = void 0;
-
-var _pg = require("pg");
-
-var _crypto = _interopRequireDefault(require("crypto"));
-
+Object.defineProperty(exports, "__esModule", { value: true });
+const pg_1 = require("pg");
 let client;
-const config = process.env.STAGE === "local" ? // local connection handled entirely via env vars
-null : {// TODO: CloudSQL Proxy Connection
-};
+// const config =
+//   process.env.STAGE === "local"
+//     ? // local connection handled entirely via env vars
+//       null
+//     : {
+//         // TODO: CloudSQL Proxy Connection
+//       };
 /**
- * Connects to database using info defined in environment variables 
- * (MONGO_URL, MONGO_DATABASE, MONGO_SSL, MONGO_SSL_VALIDATE).
+ * Connects to database using environment variables PGUSER, PGHOST, PGPASSWORD,
+ * PGDATABASE, PGPORT or single PGCONNECTIONSTRING variable for the connection
+ * string.
  *
  * @async
  * @function connect
  */
-
 const connect = async () => {
-  if (!client) {
-    client = new _pg.Client(config); // Connect to Postgres server.
-
-    await client.connect();
-  }
+    if (!client) {
+        let config;
+        if (process.env.PGCONNECTIONSTRING) {
+            config = {
+                connectionString: process.env.PGCONNECTIONSTRING,
+            };
+        }
+        else if (process.env.PGUSER ||
+            process.env.PGHOST ||
+            process.env.PGPASSWORD ||
+            process.env.PGDATABASE ||
+            process.env.PGPORT) {
+            config = {
+                user: process.env.PGUSER,
+                host: process.env.PGHOST,
+                database: process.env.PGPASSWORD,
+                password: process.env.PGDATABASE,
+            };
+            if (process.env.PGPORT) {
+                config.port = parseInt(process.env.PGPORT, 10);
+            }
+        }
+        else {
+            throw new Error("Set PostgreSQL environment variables PGUSER, PGHOST, PGPASSWORD, PGDATABASE, PGPORT or PGCONNECTIONSTRING");
+        }
+        client = new pg_1.Client(config);
+        await client.connect();
+    }
 };
+exports.connect = connect;
 /**
  * Disconnects from database.
  *
  * @async
  * @function disconnect
  */
-
-
-exports.connect = connect;
-
 const disconnect = async () => {
-  if (client) {
-    await client.end();
-    client = null;
-  }
+    if (client) {
+        await client.end();
+        client = null;
+    }
 };
-/**
- * Runs a query.
- *
- * @function query
- * @param {String} text the SQL you want to run
- * @param {Array} values the array of values you want 
- *  to inject into the query
- * @return {Db} MongoDB instance of the Db class.
- */
-
-
 exports.disconnect = disconnect;
-
-const query = async (text, values) => {
-  if (!client) {
-    await connect();
-  }
-
-  return client.query(text, values);
+/**
+ * Executes query.
+ *
+ * @async
+ * @function query
+ * @param {text: String, values: [String/Number/etc]} command
+ * @returns {Promise<QueryResult | undefined>}
+ */
+const query = async (command) => {
+    if (!client) {
+        await connect();
+    }
+    return await client.query(command);
 };
+exports.query = query;
 /**
  * Runs a set of queries as a transaction.
  * See: https://node-postgres.com/features/transactions
  *
+ * @async
  * @function transaction
- * @param {Array[{text: String, values: [String/Number/etc]}]} commands the set of SQL commands you want to run
- *  It's an array of objects who each have a `text` string and a `values` array.
- * @return {Db} MongoDB instance of the Db class.
+ * @param {Array<QueryConfig>} commands the set of SQL commands you want to run.
+ * It's an array of objects where each one have the `text` and `values`
+ * properties.
+ * @returns {Promise<QueryResult | undefined>}
  */
-
-
-exports.query = query;
-
 const transaction = async (commands = []) => {
-  if (!client) {
-    await connect();
-  }
-
-  try {
-    await client.query('BEGIN');
-
-    for (let command of commands) {
-      await client.query(command);
+    if (!client) {
+        await connect();
     }
-
-    await client.query('COMMIT');
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  }
-
-  return client.query(text, values);
-};
-/**
- * Generates ID string.
- *
- * @function generateId
- * @param {number} charsCount - Length of the ID string.
- * @return {string} randomized ID string.
- */
-
-
-exports.transaction = transaction;
-
-const generateId = (charsCount = 17) => {
-  const CHARS = "23456789ABCDEFGHJKLMNPQRSTWXYZabcdefghijkmnopqrstuvwxyz";
-  const digits = [];
-
-  for (let i = 0; i < charsCount; i++) {
-    let bytes;
-
     try {
-      bytes = _crypto.default.randomBytes(4);
-    } catch (e) {
-      bytes = _crypto.default.pseudoRandomBytes(4);
+        await client.query("BEGIN");
+        const result = await Promise.all(commands.map(command => client.query(command)));
+        await client.query("COMMIT");
+        return result;
     }
-
-    const hexString = bytes.toString("hex").substring(0, 8);
-    const fraction = parseInt(hexString, 16) * 2.3283064365386963e-10;
-    const index = Math.floor(fraction * CHARS.length);
-    digits[i] = CHARS.substr(index, 1);
-  }
-
-  return digits.join("");
+    catch (e) {
+        await client.query("ROLLBACK");
+        throw e;
+    }
 };
+exports.transaction = transaction;
