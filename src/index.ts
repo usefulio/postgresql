@@ -10,15 +10,7 @@ let client: Client | null;
 //         // TODO: CloudSQL Proxy Connection
 //       };
 
-/**
- * Connects to database using environment variables PGUSER, PGHOST, PGPASSWORD,
- * PGDATABASE, PGPORT or single PGCONNECTIONSTRING variable for the connection
- * string.
- *
- * @async
- * @function connect
- */
-const connect = async () => {
+async function connect() {
   if (!client) {
     let config: ClientConfig;
     if (process.env.PGCONNECTIONSTRING) {
@@ -49,52 +41,31 @@ const connect = async () => {
     client = new Client(config);
     await client.connect();
   }
-};
+}
 
-/**
- * Disconnects from database.
- *
- * @async
- * @function disconnect
- */
-const disconnect = async () => {
+async function disconnect() {
   if (client) {
     await client.end();
     client = null;
   }
-};
+}
 
-/**
- * Executes query.
- *
- * @async
- * @function query
- * @param {text: String, values: [String/Number/etc]} command
- * @returns {Promise<QueryResult | undefined>}
- */
-const query = async (
-  command: QueryConfig,
-): Promise<QueryResult | undefined> => {
+async function query(
+  queryTextOrConfig: string | QueryConfig,
+  values?: any[],
+): Promise<QueryResult>;
+async function query(command: QueryConfig): Promise<QueryResult>;
+
+async function query(...args: any[]): Promise<QueryResult> {
   if (!client) {
     await connect();
   }
-  return await client!.query(command);
-};
+  return client!.query.apply(client, args);
+}
 
-/**
- * Runs a set of queries as a transaction.
- * See: https://node-postgres.com/features/transactions
- *
- * @async
- * @function transaction
- * @param {Array<QueryConfig>} commands the set of SQL commands you want to run.
- * It's an array of objects where each one have the `text` and `values`
- * properties.
- * @returns {Promise<QueryResult | undefined>}
- */
-const transaction = async (
+async function transaction(
   commands: Array<QueryConfig> = [],
-): Promise<Array<QueryResult> | undefined> => {
+): Promise<Array<QueryResult> | undefined> {
   if (!client) {
     await connect();
   }
@@ -109,6 +80,6 @@ const transaction = async (
     await client!.query("ROLLBACK");
     throw e;
   }
-};
+}
 
 export { connect, disconnect, query, transaction };
