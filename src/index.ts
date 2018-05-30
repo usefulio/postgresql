@@ -1,6 +1,6 @@
 import { Client, ClientConfig, QueryConfig, QueryResult } from "pg";
 
-let client: Client | null;
+export let client: Client | null;
 
 // const config =
 //   process.env.STAGE === "local"
@@ -10,7 +10,7 @@ let client: Client | null;
 //         // TODO: CloudSQL Proxy Connection
 //       };
 
-async function connect() {
+export async function connect() {
   if (!client) {
     let config: ClientConfig;
     if (process.env.PGCONNECTIONSTRING) {
@@ -43,27 +43,27 @@ async function connect() {
   }
 }
 
-async function disconnect() {
+export async function disconnect() {
   if (client) {
     await client.end();
     client = null;
   }
 }
 
-async function query(
+export async function query(
   queryTextOrConfig: string | QueryConfig,
   values?: any[],
 ): Promise<QueryResult>;
-async function query(command: QueryConfig): Promise<QueryResult>;
+export async function query(command: QueryConfig): Promise<QueryResult>;
 
-async function query(...args: any[]): Promise<QueryResult> {
+export async function query(...args: any[]): Promise<QueryResult> {
   if (!client) {
     await connect();
   }
   return client!.query.apply(client, args);
 }
 
-async function transaction(
+export async function transaction(
   commands: Array<QueryConfig> = [],
 ): Promise<Array<QueryResult> | undefined> {
   if (!client) {
@@ -81,5 +81,3 @@ async function transaction(
     throw e;
   }
 }
-
-export { connect, disconnect, query, transaction };
