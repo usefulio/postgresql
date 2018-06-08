@@ -2,14 +2,6 @@ import { Client, ClientConfig, QueryConfig, QueryResult } from "pg";
 
 export let client: Client | null;
 
-// const config =
-//   process.env.STAGE === "local"
-//     ? // local connection handled entirely via env vars
-//       null
-//     : {
-//         // TODO: CloudSQL Proxy Connection
-//       };
-
 export async function connect() {
   if (!client) {
     let config: ClientConfig;
@@ -27,8 +19,8 @@ export async function connect() {
       config = {
         user: process.env.PGUSER,
         host: process.env.PGHOST,
-        database: process.env.PGPASSWORD,
-        password: process.env.PGDATABASE,
+        password: process.env.PGPASSWORD,
+        database: process.env.PGDATABASE,
       };
       if (process.env.PGPORT) {
         config.port = parseInt(process.env.PGPORT, 10);

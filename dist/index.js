@@ -1,16 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
-let client;
-// const config =
-//   process.env.STAGE === "local"
-//     ? // local connection handled entirely via env vars
-//       null
-//     : {
-//         // TODO: CloudSQL Proxy Connection
-//       };
 async function connect() {
-    if (!client) {
+    if (!exports.client) {
         let config;
         if (process.env.PGCONNECTIONSTRING) {
             config = {
@@ -25,8 +17,8 @@ async function connect() {
             config = {
                 user: process.env.PGUSER,
                 host: process.env.PGHOST,
-                database: process.env.PGPASSWORD,
-                password: process.env.PGDATABASE,
+                password: process.env.PGPASSWORD,
+                database: process.env.PGDATABASE,
             };
             if (process.env.PGPORT) {
                 config.port = parseInt(process.env.PGPORT, 10);
@@ -35,37 +27,37 @@ async function connect() {
         else {
             throw new Error("Set PostgreSQL environment variables PGUSER, PGHOST, PGPASSWORD, PGDATABASE, PGPORT or PGCONNECTIONSTRING");
         }
-        client = new pg_1.Client(config);
-        await client.connect();
+        exports.client = new pg_1.Client(config);
+        await exports.client.connect();
     }
 }
 exports.connect = connect;
 async function disconnect() {
-    if (client) {
-        await client.end();
-        client = null;
+    if (exports.client) {
+        await exports.client.end();
+        exports.client = null;
     }
 }
 exports.disconnect = disconnect;
 async function query(...args) {
-    if (!client) {
+    if (!exports.client) {
         await connect();
     }
-    return client.query.apply(client, args);
+    return exports.client.query.apply(exports.client, args);
 }
 exports.query = query;
 async function transaction(commands = []) {
-    if (!client) {
+    if (!exports.client) {
         await connect();
     }
     try {
-        await client.query("BEGIN");
-        const result = await Promise.all(commands.map(command => client.query(command)));
-        await client.query("COMMIT");
+        await exports.client.query("BEGIN");
+        const result = await Promise.all(commands.map(command => exports.client.query(command)));
+        await exports.client.query("COMMIT");
         return result;
     }
     catch (e) {
-        await client.query("ROLLBACK");
+        await exports.client.query("ROLLBACK");
         throw e;
     }
 }
