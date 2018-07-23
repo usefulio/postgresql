@@ -1,7 +1,8 @@
 {
   "name": "@useful/postgresql",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "main": "dist/index.js",
+  "license": "MIT", 
   "scripts": {
     "build": "tsc"
   },
