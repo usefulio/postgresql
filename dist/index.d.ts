@@ -1,5 +1,5 @@
-import { Client, QueryConfig, QueryResult } from "pg";
-export declare let client: Client | null;
+import { Pool, QueryConfig, QueryResult } from "pg";
+export declare let pool: Pool | null;
 export declare function connect(): Promise<void>;
 export declare function disconnect(): Promise<void>;
 export declare function query(queryTextOrConfig: string | QueryConfig, values?: any[]): Promise<QueryResult>;
