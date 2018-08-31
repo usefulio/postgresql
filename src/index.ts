@@ -1,11 +1,11 @@
 import { createHash } from "crypto";
-import { Client, ClientConfig, QueryConfig, QueryResult, Query } from "pg";
+import { Pool, PoolConfig, PoolClient, QueryConfig, QueryResult } from "pg";
 
-export let client: Client | null;
+export let pool: Pool | null;
 
 export async function connect() {
-  if (!client) {
-    let config: ClientConfig;
+  if (!pool) {
+    let config: PoolConfig;
     if (process.env.PGCONNECTIONSTRING) {
       config = {
         connectionString: process.env.PGCONNECTIONSTRING,
@@ -31,15 +31,28 @@ export async function connect() {
         "Set PostgreSQL environment variables PGUSER, PGHOST, PGPASSWORD, PGDATABASE, PGPORT or PGCONNECTIONSTRING",
       );
     }
-    client = new Client(config);
-    await client.connect();
+    pool = new Pool(config);
+    pool.on("error", (err: Error, client: PoolClient) => {
+      console.error("postgres pool client error:");
+      console.error(err);
+    });
+    // For development only
+    // pool.on("connect", (client: PoolClient) => {
+    //   console.log("pg client connected");
+    // });
+    // pool.on("acquire", (client: PoolClient) => {
+    //   console.log("pg client acquired");
+    // });
+    // pool.on("remove", (client: PoolClient) => {
+    //   console.log("pg client removed");
+    // });
   }
 }
 
 export async function disconnect() {
-  if (client) {
-    await client.end();
-    client = null;
+  if (pool) {
+    await pool.end();
+    pool = null;
   }
 }
 
@@ -50,28 +63,31 @@ export async function query(
 export async function query(command: QueryConfig): Promise<QueryResult>;
 
 export async function query(...args: any[]): Promise<QueryResult> {
-  if (!client) {
+  if (!pool) {
     await connect();
   }
-  return client!.query.apply(client, args);
+  return pool!.query.apply(pool, args);
 }
 
 export async function transaction(
   commands: Array<QueryConfig> = [],
 ): Promise<Array<QueryResult> | undefined> {
-  if (!client) {
+  if (!pool) {
     await connect();
   }
+  const client = await pool!.connect();
   try {
     await client!.query("BEGIN");
     const result = await Promise.all(
-      commands.map(command => client!.query(command)),
+      commands.map(command => pool!.query(command)),
     );
     await client!.query("COMMIT");
     return result;
   } catch (e) {
     await client!.query("ROLLBACK");
     throw e;
+  } finally {
+    client!.release();
   }
 }
 
@@ -90,11 +106,11 @@ async function executeImmutableSequence(
   sequenceName: string,
   commands: Array<string> = []
 ): Promise<Array<QueryResult> | undefined> {
-  if (!client) {
+  if (!pool) {
     await connect();
   }
   // create the migrations table if it does not exist
-  await client!.query(`CREATE TABLE IF NOT EXISTS ${sequenceName} (
+  await pool!.query(`CREATE TABLE IF NOT EXISTS ${sequenceName} (
     id        serial PRIMARY KEY,
     version   integer NOT NULL,
     run_at    timestamp WITH TIME ZONE DEFAULT current_timestamp,
@@ -105,7 +121,7 @@ async function executeImmutableSequence(
   // check for changes in any migrations that have already been run
   for (let i: number = 0; i < commands.length; i++) {
     const expectedHash = hashString(commands[i]);
-    const existingCommandResult = await client!.query(
+    const existingCommandResult = await pool!.query(
       `SELECT * FROM ${sequenceName} WHERE version=$1`,
       [i],
     );

@@ -1,6 +1,6 @@
 {
   "name": "@useful/postgresql",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "main": "dist/index.js",
   "license": "MIT",
   "authors": "Useful IO <team@useful.io>",
@@ -12,7 +12,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@types/pg": "^7.4.9",
+    "@types/pg": "^7.4.10",
     "pg": "^7.4.3",
     "pg-native": "^3.0.0"
   },
