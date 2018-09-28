@@ -79,7 +79,7 @@ export async function transaction(
   try {
     await client!.query("BEGIN");
     const result = await Promise.all(
-      commands.map(command => pool!.query(command)),
+      commands.map(command => client!.query(command)),
     );
     await client!.query("COMMIT");
     return result;

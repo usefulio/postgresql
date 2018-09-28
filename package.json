@@ -1,6 +1,6 @@
 {
   "name": "@useful/postgresql",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "main": "dist/index.js",
   "license": "MIT",
   "authors": "Useful IO <team@useful.io>",

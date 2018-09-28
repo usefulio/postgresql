@@ -67,7 +67,7 @@ async function transaction(commands = []) {
     const client = await exports.pool.connect();
     try {
         await client.query("BEGIN");
-        const result = await Promise.all(commands.map(command => exports.pool.query(command)));
+        const result = await Promise.all(commands.map(command => client.query(command)));
         await client.query("COMMIT");
         return result;
     }
